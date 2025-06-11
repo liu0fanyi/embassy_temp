@@ -1,0 +1,23 @@
+[package]
+name = "embassy_app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aclint = "=0.1.0"
+uart16550 = "0.0.1"
+fast-trap = { version = "0.1.0", features = ["riscv-m"] }
+spin = "0.9.8"
+log = "0.4"
+critical-section = { version = "1.1", features = ["restore-state-usize"] }
+riscv = "0.12.1"
+# static_cell = "2.1"
+embassy-executor = { path = "../embassy/embassy-executor", features = [
+  "log",
+  "force_no_atomic",
+  "arch-riscv32",
+  "executor-thread",
+] }
+embassy-time = "0.4.0"
+embassy-time-driver = { version = "0.2.0", features = ["tick-hz-1_000_000"] }
+embassy-time-queue-utils = { version = "0.1.0", features = ["_generic-queue"] }
