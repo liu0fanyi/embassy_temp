@@ -1,31 +1,28 @@
 #![no_std]
 #![no_main]
+#![allow(static_mut_refs)]
+#![allow(explicit_builtin_cfgs_in_flags)]
 pub mod console;
 mod gpio;
 #[macro_use]
 mod log;
-mod simple_once;
-mod static_cell;
 mod time_driver;
 
 use core::{arch::asm, mem::forget, ptr::NonNull};
 
-use ::log::{error, info};
+// use ::log::{error, info};
 use aclint::SifiveClint;
 use console::{PLATFORM, Uart16550Wrap};
 use embassy_executor::Executor;
 use embassy_time::{Duration, Timer};
 use fast_trap::{FastContext, FastResult, FlowContext, FreeTrapStack};
 use gpio::{GPIO_BASE, init_gpio_as_output, set_gpio_output, toggle_gpio};
-// use log::*;
+// use log::Logger;
 use riscv::{
     interrupt::{Exception, Interrupt, Trap},
     register::{mcause, mepc, mtval, mtvec},
 };
-// use simple_once::SimpleOnce;
-// use spin::Once;
-// use spin::Mutex;
-// use static_cell::StaticCell;
+use static_cell::StaticCell;
 
 // #[macro_use]
 // extern crate log;
@@ -101,7 +98,7 @@ use riscv::{
 async fn run_simple() {
     loop {
         Timer::after(Duration::from_secs(2)).await;
-        println!("Hello, run_simple!");
+        println!("Hello, run_not_simple!");
     }
 }
 
@@ -174,48 +171,14 @@ impl SifiveClintWrap {
     }
 }
 
-// static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-// static EXECUTOR: SimpleOnce<Executor> = SimpleOnce::new();
-static mut EXECUTOR: Option<Executor> = None;
+static EXECUTOR: StaticCell<Executor> = StaticCell::new();
+// static mut EXECUTOR: Option<Executor> = None;
 
 unsafe impl Sync for SifiveClintWrap {}
 unsafe impl Send for SifiveClintWrap {}
 
-// static CLINT: StaticCell<Mutex<SifiveClintWrap>> = StaticCell::new();
-// static mut CLINT: Option<SifiveClintWrap> = Option::None;
-// static CLINT: AtomicPtr<SifiveClintWrap> = AtomicPtr::new(core::ptr::null_mut());
-
-// pub fn init_clint(base: usize) {
-//     let clint = Box::leak(Box::new(SifiveClintWrap::new(base)));
-//     CLINT.store(clint, Ordering::SeqCst);
-// }
-
-// pub fn get_clint() -> Option<&'static SifiveClintWrap> {
-//     let ptr = CLINT.load(Ordering::SeqCst);
-//     if ptr.is_null() {
-//         None
-//     } else {
-//         Some(unsafe { &*ptr })
-//     }
-// }
-// 使用StaticCell来静态分配CLINT实例
-// static CLINT: StaticCell<SifiveClintWrap> = StaticCell::new();
-// static CLINT: SimpleOnce<SifiveClintWrap> = SimpleOnce::new();
 static mut CLINT: SifiveClintWrap = SifiveClintWrap::new(0x2000000);
 
-// 全局访问接口
-// pub fn init_clint(base: usize) {
-//     CLINT.call_once(|| SifiveClintWrap::new(base));
-// }
-
-// pub fn get_clint() -> &'static SifiveClintWrap {
-//     println!("Hello, world!15");
-//     CLINT.get().expect("CLINT not initialized")
-// }
-
-// pub fn init_clint(base: usize) {
-//     let _ = CLINT.init(SifiveClintWrap::new(base));
-// }
 pub extern "C" fn fast_handler(
     mut ctx: FastContext,
     a1: usize,
@@ -234,6 +197,7 @@ pub extern "C" fn fast_handler(
         ctx.regs().a = [ctx.a0(), a1, a2, a3, a4, a5, a6, a7];
     };
     let cause = mcause::read();
+    // TODO: 从来没看到打印，根本没进入过trap=_=
     println!("TRAP: cause{:?}, code={:#x}", cause.cause(), cause.code());
 
     match cause.cause().try_into() {
@@ -291,19 +255,9 @@ pub fn unsupported_trap(trap: Option<Trap<Interrupt, Exception>>) -> ! {
     panic!("Stopped with unsupported trap")
 }
 
-// #[inline]
-// unsafe fn stack_top() -> usize {
-//     unsafe {
-//         let stack_ptr = HART0_STACK.as_ptr() as usize;
-//         stack_ptr + STACK_SIZE
-//     }
-// }
-
 const STACK_SIZE: usize = 16 * 1024;
 
-// #[repr(C, align(128))]
 #[unsafe(link_section = ".bss.stack")]
-// static mut HART0_STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
 static mut HART0_STACK: Stack = Stack([0; STACK_SIZE]);
 
 #[repr(C, align(128))]
@@ -365,103 +319,40 @@ extern "C" fn _start(argc: usize, argv: usize) -> ! {
             stack = sym HART0_STACK,
             stack_size = const STACK_SIZE,
         )
-        // asm!("la sp, {0}", sym HART0_STACK);
-        // asm!("addi sp, sp, {}", const STACK_SIZE);
     }
 
-    #[allow(static_mut_refs)]
-    unsafe {
-        PLATFORM.console = Some(Uart16550Wrap::<u32>::new(0x10000000))
-    };
-    init_gpio_as_output(GPIO_BASE, 55);
-    set_gpio_output(GPIO_BASE, 55, true);
+    unsafe { PLATFORM.console = Some(Uart16550Wrap::<u32>::new(0x10000000)) };
 
-    // let log_result = Logger::init();
+    println!("Hello, world!112222233");
 
-    // match log_result {
-    //     Ok(_) => println!("ok了"),
-    //     Err(e) => println!("出啥事了:{:?}", e),
-    // }
-
-    println!("可以了么？");
-
-    // println!("Hello, world!");
-
-    // let clint = CLINT.init(SifiveClintWrap::new(0x2000000));
-    //
-    // init_clint(0x2000000);
-    // println!("Hello, world!0");
+    // Logger::init().unwrap();
+    // info!("Hello Embassy");
 
     time_driver::init();
-    // println!("Hello, world!1");
+    println!("Hello, world!112");
 
-    // unsafe { CLINT = Some(SifiveClintWrap::new(0x2000000)) };
-    // //u-boot/arch/riscv/dts/jh7110.dtsi, clint 0x2000000
-    // // CLINT.init(SifiveClintWrap::new(0x2000000));
-    // // let clint = CLINT.init(Mutex::new(SifiveClintWrap::new(0x2000000)));
-
-    // // time_driver::init();
-    // info!("init 0 time");
-
-    // let misa = riscv::register::misa::read();
-    // info!("hart 0 MISA: ---{:?}---", misa);
-
-    // let misa_val: usize;
-    // unsafe {
-    //     core::arch::asm!("csrr {}, misa", out(reg) misa_val);
-    // }
-    // info!("hart 0 MISA: -----0x{:x}-----", misa_val);
-    #[allow(static_mut_refs)]
-    unsafe {
-        HART0_STACK.load_as_stack()
-    };
-    // println!("Hello, world!2");
+    unsafe { HART0_STACK.load_as_stack() };
+    println!("Hello, world!113");
 
     unsafe { mtvec::write(fast_trap::trap_entry as _, mtvec::TrapMode::Direct) };
-    // println!("Hello, world!3");
+    println!("Hello, world!114");
 
     let executor_new = Executor::new();
-    // println!("Hello, world!4");
+    println!("Hello, world!115");
 
-    // init_gpio_as_output(GPIO_BASE, 55);
-    // set_gpio_output(GPIO_BASE, 55, true);
-    // let executor = EXECUTOR.init(executor_new);
-    unsafe {
-        EXECUTOR = Some(executor_new);
-        #[allow(static_mut_refs)]
-        if let Some(executor) = EXECUTOR.as_mut() {
-            println!("Hello, world!5");
-
-            // let mut executor = Executor::new();
-            // info!("init 0 executor");
-            // info!("init 0 executor 1");
-
-            executor.run(|spawner| {
-                println!("Hello, world!6");
-                // info!("spawn one ");
-                // info!("spawn one 1");
-
-                // let token = run_simple();
-                // info!("spawn one 2");
-                // match spawner.spawn(token) {
-                //     Ok(_) => info!("spawn one ok"),
-                //     Err(e) => info!("spawn one err{}", e),
-                // }
-                // info!("spawn one 20");
-                // match spawner.spawn(run()) {
-                //     Ok(_) => info!("spawn one ok"),
-                //     Err(e) => info!("spawn one err{}", e),
-                // }
-                // info!("spawn two");
-                // spawner.spawn(run_another()).unwrap();
-                // info!("spawn three");
-                spawner.spawn(run_gpio()).unwrap();
-                spawner.spawn(run_simple()).unwrap()
-            });
-        }
-    };
-
-    loop {}
+    let executor = EXECUTOR.init(executor_new);
+    println!("Hello, world!116");
+    // unsafe {
+    //     EXECUTOR = Some(Executor::new());
+    // if let Some(executor) = EXECUTOR.as_mut() {
+    executor.run(|spawner| {
+        println!("Hello, world!6");
+        spawner.spawn(run_gpio()).unwrap();
+        spawner.spawn(run_simple()).unwrap()
+    });
+    // }
+    // };
+    // loop {}
 }
 
 #[panic_handler]

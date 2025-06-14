@@ -1,24 +1,7 @@
-# {这一部分可用
 [build]
-target = "riscv64imac-unknown-none-elf" # 保持目标不变但覆盖特性
-
-# [target.riscv64imac-unknown-none-elf]
-# rustflags = [
-#   "-Clink-args=-Tlinker.ld",
-#   # "-C", "link-arg=-nostartfiles"
-# ]
-# }
-# 针对自定义目标的编译参数
-# [target.riscv64imac-unknown-none-elf]
-# rustflags = [
-#   "-C",
-#   "link-arg=-Tlink.x",          # 强制使用链接脚本
-#   "-C",
-#   "link-arg=-nostartfiles",     # 禁用系统启动文件
-#   "-C",
-#   "link-arg=-Wl,--gc-sections", # 链接时消除未使用段
-# ]
-
+target = "riscv64imac-unknown-none-elf"
+# [build]
+# target = "riscv32imc-unknown-none-elf"
 
 # 下面出现了链接问题，__atomic_load_8不知道哪里在使用
 # 它需要保证开+a
@@ -28,17 +11,35 @@ target = "riscv64imac-unknown-none-elf" # 保持目标不变但覆盖特性
 
 # [build]
 # target = "riscv64imc.json"
-
-
-# # 针对自定义目标的编译参数
-# [target.riscv64imc]
 # rustflags = [
+#   "-A",
+#   "explicit_builtin_cfgs_in_flags",
+
+#   "--cfg",
+#   "portable_atomic_no_outline_atomics",
+
 #   "-C",
-#   "link-arg=-Tlink.x", # 强制使用链接脚本
-#   # "-C",
-#   # "link-arg=-nostartfiles",     # 禁用系统启动文件
-#   # "-C",
-#   # "target-feature=+m,+c",       # 启用乘法和压缩指令
-#   # "-C",
-#   # "link-arg=-Wl,--gc-sections", # 链接时消除未使用段
+#   "target-feature=+a",
+
+#   "--cfg",
+#   "target_has_atomic_load_store",
+#   "--cfg",
+#   'target_has_atomic_load_store="8"',
+#   "--cfg",
+#   'target_has_atomic_load_store="16"',
+#   "--cfg",
+#   'target_has_atomic_load_store="32"',
+#   "--cfg",
+#   'target_has_atomic_load_store="ptr"',
+
+#   "--cfg",
+#   "target_has_atomic",
+#   "--cfg",
+#   'target_has_atomic="8"',
+#   "--cfg",
+#   'target_has_atomic="16"',
+#   "--cfg",
+#   'target_has_atomic="32"',
+#   "--cfg",
+#   'target_has_atomic="ptr"',
 # ]

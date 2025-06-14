@@ -2,10 +2,11 @@
 
 use crate::console::PLATFORM;
 use core::{
+    cell::RefCell,
     panic,
     sync::atomic::{AtomicU64, Ordering},
 };
-use critical_section::Impl;
+use critical_section::{Impl, Mutex, with};
 use embassy_time::TICK_HZ;
 use embassy_time_driver::Driver;
 use embassy_time_queue_utils::Queue;
@@ -40,12 +41,12 @@ const CLINT_FREQ_HZ: u64 = 4_000_000; // 51.2MHz, stg apb clock
 const FREQ_RATIO: u64 = CLINT_FREQ_HZ / TICK_HZ;
 
 struct MachineTimeDriver {
-    queue: spin::Mutex<Queue>,
+    queue: Mutex<RefCell<Queue>>,
     next_alarm: AtomicU64,
 }
 
 embassy_time_driver::time_driver_impl!(static DRIVER: MachineTimeDriver = MachineTimeDriver {
-    queue: spin::Mutex::new(Queue::new()),
+    queue: Mutex::new(RefCell::new(Queue::new())),
     next_alarm: AtomicU64::new(u64::MAX),
 });
 
@@ -108,17 +109,18 @@ impl MachineTimeDriver {
             CLINT.write_mtimecmp(0, u64::MAX)
         };
         // }
+        with(|cs| {
+            let now = Self::read_time();
+            let mut queue = self.queue.borrow_ref_mut(cs);
+            let next_alarm = queue.next_expiration(now);
 
-        let now = Self::read_time();
-        let mut queue = self.queue.lock();
-        let next_alarm = queue.next_expiration(now);
-
-        if next_alarm != u64::MAX {
-            self.set_timer(next_alarm);
-            self.next_alarm.store(next_alarm, Ordering::Relaxed);
-        } else {
-            self.next_alarm.store(u64::MAX, Ordering::Relaxed);
-        }
+            if next_alarm != u64::MAX {
+                self.set_timer(next_alarm);
+                self.next_alarm.store(next_alarm, Ordering::Relaxed);
+            } else {
+                self.next_alarm.store(u64::MAX, Ordering::Relaxed);
+            }
+        })
     }
 }
 
@@ -130,14 +132,16 @@ impl Driver for MachineTimeDriver {
     }
 
     fn schedule_wake(&self, at: u64, waker: &core::task::Waker) {
-        let mut queue = self.queue.lock();
+        with(|cs| {
+            let mut queue = self.queue.borrow_ref_mut(cs);
 
-        if queue.schedule_wake(at, waker) {
-            let now = Self::read_time();
-            let next = queue.next_expiration(now);
-            self.set_timer(next);
-            self.next_alarm.store(at, Ordering::Relaxed);
-        }
+            if queue.schedule_wake(at, waker) {
+                let now = Self::read_time();
+                let next = queue.next_expiration(now);
+                self.set_timer(next);
+                self.next_alarm.store(at, Ordering::Relaxed);
+            }
+        })
     }
 }
 

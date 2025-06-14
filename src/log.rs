@@ -1,8 +1,10 @@
+// use log::max_level;
+
 use crate::{
     console::PLATFORM,
     // gpio::{GPIO_BASE, init_gpio_as_output, set_gpio_output},
 };
-// use core::str::FromStr;
+use core::str::FromStr;
 // use log::{Level, LevelFilter};
 
 #[macro_export]
@@ -31,6 +33,7 @@ macro_rules! println {
 
 //         log::set_max_level(max_level);
 
+//         println!("这里还有啥问题么？");
 //         unsafe { log::set_logger_racy(&Logger) }
 //     }
 // }
