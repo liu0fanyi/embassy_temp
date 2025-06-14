@@ -73,31 +73,12 @@ dependencies = [
 [[package]]
 name = "embassy-executor"
 version = "0.7.0"
-dependencies = [
- "critical-section",
- "document-features",
- "embassy-executor-macros 0.6.2",
-]
-
-[[package]]
-name = "embassy-executor"
-version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90327bcc66333a507f89ecc4e2d911b265c45f5c9bc241f98eee076752d35ac6"
 dependencies = [
  "critical-section",
  "document-features",
- "embassy-executor-macros 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "embassy-executor-macros"
-version = "0.6.2"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn",
+ "embassy-executor-macros",
 ]
 
 [[package]]
@@ -143,7 +124,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc55c748d16908a65b166d09ce976575fb8852cf60ccd06174092b41064d8f83"
 dependencies = [
- "embassy-executor 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embassy-executor",
  "heapless",
 ]
 
@@ -153,11 +134,12 @@ version = "0.1.0"
 dependencies = [
  "aclint",
  "critical-section",
- "embassy-executor 0.7.0",
+ "embassy-executor",
  "embassy-time",
  "embassy-time-driver",
  "embassy-time-queue-utils",
  "fast-trap",
+ "portable-atomic",
  "riscv",
  "static_cell",
  "uart16550",

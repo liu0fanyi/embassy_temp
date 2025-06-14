@@ -1,5 +1,5 @@
-[build]
-target = "riscv64imac-unknown-none-elf"
+# [build]
+# target = "riscv64imac-unknown-none-elf"
 # [build]
 # target = "riscv32imc-unknown-none-elf"
 
@@ -9,8 +9,8 @@ target = "riscv64imac-unknown-none-elf"
 # build-std = ["core", "alloc", "compiler_builtins"]
 # build-std-features = ["compiler-builtins-mem"]
 
-# [build]
-# target = "riscv64imc.json"
+[build]
+target = "riscv64imc.json"
 # rustflags = [
 #   "-A",
 #   "explicit_builtin_cfgs_in_flags",
