@@ -1,16 +1,23 @@
+[build]
+target = "riscv64imc.json"
+rustflags = ["--cfg", "portable_atomic_target_feature=\"zaamo\""]
+
+[unstable]
+build-std = ["core", "alloc", "compiler_builtins"]
+build-std-features = ["compiler-builtins-mem"]
+
 # [build]
 # target = "riscv64imac-unknown-none-elf"
+
+# [target.'cfg(all(target_arch = "riscv64", target_os = "none"))']
+
 # [build]
 # target = "riscv32imc-unknown-none-elf"
 
 # 下面出现了链接问题，__atomic_load_8不知道哪里在使用
 # 它需要保证开+a
-# [unstable]
-# build-std = ["core", "alloc", "compiler_builtins"]
-# build-std-features = ["compiler-builtins-mem"]
 
-[build]
-target = "riscv64imc.json"
+
 # rustflags = [
 #   "-A",
 #   "explicit_builtin_cfgs_in_flags",
